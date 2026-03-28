@@ -18,7 +18,7 @@ TOKEN = '8706453784:AAEbIVcFv15JKjqzogg2sk7xHGzG2UAl5M8'
 bot = telebot.TeleBot(TOKEN)
 
 # Dono APIs alag alag set kar di hain
-LIKE_API_URL = "http://127.0.0.1:5000/like"
+LIKE_API_URL = "https://like-api-mu-vert.vercel.app/like"
 INFO_API_URL = "https://info-43yp.vercel.app/player-info"
 
 # 👇 VPLINK SHORTENER SETUP 👇
