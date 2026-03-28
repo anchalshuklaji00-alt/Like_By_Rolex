@@ -1,3 +1,4 @@
+from keep_alive import keep_alive
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
@@ -608,4 +609,5 @@ hacker_look_banner = """
 \033[1;36m[+] CONCURRENT USERS: 10 (THREAD POOL ACTIVE)\033[0m
 """
 print(hacker_look_banner)
+keep_alive()  # Ye line dummy server chalu karegi
 bot.infinity_polling(allowed_updates=telebot.util.update_types)
