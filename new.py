@@ -1,4 +1,3 @@
-from keep_alive import keep_alive
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
@@ -18,7 +17,7 @@ TOKEN = '8706453784:AAEbIVcFv15JKjqzogg2sk7xHGzG2UAl5M8'
 bot = telebot.TeleBot(TOKEN)
 
 # Dono APIs alag alag set kar di hain
-LIKE_API_URL = "https://like-api-mu-vert.vercel.app/like"
+LIKE_API_URL = "https://like-api-mu-vert.vercel.app/"
 INFO_API_URL = "https://info-43yp.vercel.app/player-info"
 
 # 👇 VPLINK SHORTENER SETUP 👇
@@ -29,6 +28,7 @@ pending_likes = {} # Memory for tokens
 # ⚙️ MULTI-JOIN FORCE SUBSCRIBE SETUP
 # ==========================================
 GROUP_USERNAME = "@LikeBotFreeFireMax"
+GROUP_CHAT_ID = "@LikeBotFreeFireMax"  # Group mein result bhejne ke liye
 CHANNEL_1 = "@ROLEX857J" 
 CHANNEL_2 = "@rolexlike" 
 
@@ -270,7 +270,22 @@ def send_welcome(message):
                             bot.send_video(message.chat.id, video=video_file, caption=bypass_warn, parse_mode="Markdown")
                     except FileNotFoundError:
                         bot.reply_to(message, bypass_warn, parse_mode="Markdown")
-                        
+
+                    # Bypass alert group mein bhi bhejo
+                    bypass_group_text = (
+                        f"⚠️ *BYPASS DETECTED!* ⚠️\n"
+                        "━━━━━━━━━━━━━━━━━━\n"
+                        f"👤 *User:* [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+                        f"🆔 *User ID:* `{message.from_user.id}`\n"
+                        "━━━━━━━━━━━━━━━━━━\n"
+                        "🚫 *Is user ne shortlink bypass karke 2 min se pehle link khola!*\n"
+                        "🚀 *Powered by VIP Rolex Engine*"
+                    )
+                    try:
+                        bot.send_message(GROUP_CHAT_ID, bypass_group_text, parse_mode='Markdown')
+                    except Exception as ge:
+                        print(f"Group bypass send error: {ge}")
+
                     del pending_likes[token] # Link uda do
                     return
                     
@@ -369,6 +384,7 @@ def handle_like(message):
         
         markup = InlineKeyboardMarkup()
         markup.row(InlineKeyboardButton("🔗 OPEN LINK & VERIFY", url=short_url))
+        markup.row(InlineKeyboardButton("📹 How to Verify? Watch Here", url="https://www.youtube.com/watch?v=jSDNzzqFkYw"))
         
         bot.edit_message_text(verify_msg, chat_id=message.chat.id, message_id=status_msg.message_id, reply_markup=markup, parse_mode='Markdown', disable_web_page_preview=True)
 
@@ -423,8 +439,7 @@ def process_actual_like(message, server_name, uid):
                             f"📊 *Total Likes Now:* `{likes_after}`\n"
                             "━━━━━━━━━━━━━━━━━━\n"
                             "🚀 *Powered by VIP Rolex Engine*"
-                        )
-                    
+                        )                    
                     try:
                         with open('success.mp4', 'rb') as video_file:
                             bot.delete_message(chat_id=message.chat.id, message_id=status_msg.message_id)
@@ -432,6 +447,12 @@ def process_actual_like(message, server_name, uid):
                     except Exception as e:
                         print(f"MP4 Error: {e}") 
                         bot.edit_message_text(final_text, chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
+
+                    # Result group mein bhi bhejo (success + already liked dono cases)
+                    try:
+                        bot.send_message(GROUP_CHAT_ID, final_text, parse_mode='Markdown')
+                    except Exception as ge:
+                        print(f"Group send error: {ge}")
 
                 else:
                     final_text = "❌ *OPERATION FAILED* ❌\n━━━━━━━━━━━━━━━━━━\n⚠️ *API Error:* Token Expired or Invalid\n━━━━━━━━━━━━━━━━━━\n📩 *Owner:* @RolexBoss62"
@@ -448,6 +469,10 @@ def process_actual_like(message, server_name, uid):
 # ==========================================
 @bot.message_handler(commands=['info'])
 def get_player_info(message):
+    # /info sirf bot pe kaam kare, group me bilkul nahi
+    if message.chat.id < 0:
+        return
+
     user_id = message.from_user.id
     log_active_user(user_id)
 
@@ -609,5 +634,5 @@ hacker_look_banner = """
 \033[1;36m[+] CONCURRENT USERS: 10 (THREAD POOL ACTIVE)\033[0m
 """
 print(hacker_look_banner)
-keep_alive()  # Ye line dummy server chalu karegi
 bot.infinity_polling(allowed_updates=telebot.util.update_types)
+
