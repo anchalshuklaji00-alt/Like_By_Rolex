@@ -10,6 +10,9 @@ import string
 import random
 from concurrent.futures import ThreadPoolExecutor
 
+# 👇 NAYA FIX: Render deployment ke liye Dummy Server
+from keep_alive import keep_alive 
+
 # ==========================================
 # ⚙️ CONFIGURATION & TOKENS
 # ==========================================
@@ -17,7 +20,7 @@ TOKEN = '8706453784:AAEbIVcFv15JKjqzogg2sk7xHGzG2UAl5M8'
 bot = telebot.TeleBot(TOKEN)
 
 # Dono APIs alag alag set kar di hain
-LIKE_API_URL = "https://like-api-mu-vert.vercel.app/"
+LIKE_API_URL = "http://127.0.0.1:5000/like"
 INFO_API_URL = "https://info-43yp.vercel.app/player-info"
 
 # 👇 VPLINK SHORTENER SETUP 👇
@@ -469,7 +472,11 @@ def process_actual_like(message, server_name, uid):
 # ==========================================
 @bot.message_handler(commands=['info'])
 def get_player_info(message):
-    # /info sirf bot pe kaam kare, group me bilkul nahi
+    # 👇 NAYA FIX: Group mein /info block karna
+    if message.chat.type in ['group', 'supergroup']:
+        bot.reply_to(message, "⚠️ Bhai, `/info` command sirf bot ke DM (Private Chat) mein kaam karta hai. Group mein allow nahi hai!", parse_mode="Markdown")
+        return
+        
     if message.chat.id < 0:
         return
 
@@ -634,5 +641,9 @@ hacker_look_banner = """
 \033[1;36m[+] CONCURRENT USERS: 10 (THREAD POOL ACTIVE)\033[0m
 """
 print(hacker_look_banner)
+
+# 👇 NAYA FIX: Render Dummy Server Start 👇
+keep_alive()
+
 bot.infinity_polling(allowed_updates=telebot.util.update_types)
 
