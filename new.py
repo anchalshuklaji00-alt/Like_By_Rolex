@@ -4,7 +4,7 @@ import requests
 import json
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import threading
 import string
 import random
@@ -26,6 +26,50 @@ INFO_API_URL = "https://info-43yp.vercel.app/player-info"
 # 👇 VPLINK SHORTENER SETUP 👇
 VPLINK_API_KEY = "c98c6414ee95c040c319b79703888333fcf89435"
 pending_likes = {} # Memory for tokens
+
+# ==========================================
+# ⚙️ SHORTLINK ON/OFF SWITCH
+# ==========================================
+# 🔴 Shortlink band karne ke liye: SHORTLINK_ENABLED = False
+# 🟢 Shortlink wapas chalu karne ke liye: SHORTLINK_ENABLED = True  ← BAS YE EK LINE BADLO
+SHORTLINK_ENABLED = False
+
+# ==========================================
+# ⚙️ DAILY LIMIT SYSTEM (RESETS AT 4 AM IST)
+# ==========================================
+IST = timezone(timedelta(hours=5, minutes=30))
+daily_like_usage = {}  # {user_id: datetime (IST)}
+
+def get_ff_day_start():
+    """Current Free Fire day start kab hua (4 AM IST)"""
+    now_ist = datetime.now(IST)
+    today_4am = now_ist.replace(hour=4, minute=0, second=0, microsecond=0)
+    if now_ist >= today_4am:
+        return today_4am
+    else:
+        return today_4am - timedelta(days=1)
+
+def has_used_daily_like(user_id):
+    """Check karo ki user ne aaj (4AM ke baad) like use kiya hai ya nahi"""
+    if user_id not in daily_like_usage:
+        return False
+    last_use = daily_like_usage[user_id]
+    ff_day_start = get_ff_day_start()
+    return last_use >= ff_day_start
+
+def set_daily_like_used(user_id):
+    """User ka daily like mark karo as used"""
+    daily_like_usage[user_id] = datetime.now(IST)
+
+def get_next_reset_time():
+    """Next 4 AM IST kitne baje hoga (text format mein)"""
+    now_ist = datetime.now(IST)
+    today_4am = now_ist.replace(hour=4, minute=0, second=0, microsecond=0)
+    if now_ist >= today_4am:
+        next_reset = today_4am + timedelta(days=1)
+    else:
+        next_reset = today_4am
+    return next_reset.strftime("%d %B %Y at 4:00 AM IST")
 
 # ==========================================
 # ⚙️ MULTI-JOIN FORCE SUBSCRIBE SETUP
@@ -356,42 +400,80 @@ def handle_like(message):
     server_name = msg_args[1].upper()
     uid = msg_args[2]
 
-    # Turant user ko processing message dikhao taaki wo wait kare
-    status_msg = bot.reply_to(message, "⚡ *Shortening your secure link... Please hold on!* 🔗", parse_mode='Markdown')
-
-    def generate_and_send():
-        token = "VPL_" + ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-        
-        pending_likes[token] = {
-            "user_id": user_id,
-            "server_name": server_name,
-            "uid": uid,
-            "timestamp": time.time() 
-        }
-
-        bot_info = bot.get_me() 
-        dest_url = f"https://t.me/{bot_info.username}?start={token}" 
-        
-        bot.edit_message_text("🔐 *Encrypting & generating VIP link... Almost done!* ✨", chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
-        
-        short_url = get_shortlink(dest_url) 
-        
-        verify_msg = (
-            "⚠️ *VERIFICATION REQUIRED!* ⚠️\n"
+    # ==========================================
+    # 🚫 DAILY LIMIT CHECK
+    # ==========================================
+    if has_used_daily_like(user_id):
+        next_reset = get_next_reset_time()
+        limit_msg = (
+            "🚫 *DAILY LIMIT REACHED!* 🚫\n"
             "━━━━━━━━━━━━━━━━━━\n"
-            f"👤 **Target UID:** `{uid}`\n\n"
-            "👉 *Likes bhejne ke liye is link ko verify karo:*\n"
-            f"🔗 **Link:** {short_url}\n\n"
-            "*(Link open karo, ad skip karo, aur wapas aakar 'Start' dabao tabhi like jayega!)*"
+            f"👤 *Hey {message.from_user.first_name},*\n\n"
+            "Aapka aaj ka Free Like quota already use ho chuka hai! 💔\n\n"
+            "🎮 *Free Fire ki tarah, har cheez ka ek limit hota hai.*\n"
+            "Yeh bot bhi daily ek hi baar like bhejne ki permission deta hai.\n\n"
+            "⏰ *Aapka limit reset hoga:*\n"
+            f"📅 `{next_reset}`\n\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🔁 Kal subah *4:00 AM IST* ke baad wapas aana!\n"
+            "🚀 *Powered by VIP Rolex Engine*"
         )
-        
-        markup = InlineKeyboardMarkup()
-        markup.row(InlineKeyboardButton("🔗 OPEN LINK & VERIFY", url=short_url))
-        markup.row(InlineKeyboardButton("📹 How to Verify? Watch Here", url="https://www.youtube.com/watch?v=jSDNzzqFkYw"))
-        
-        bot.edit_message_text(verify_msg, chat_id=message.chat.id, message_id=status_msg.message_id, reply_markup=markup, parse_mode='Markdown', disable_web_page_preview=True)
+        try:
+            with open('daily.mp4', 'rb') as video_file:
+                bot.send_video(message.chat.id, video=video_file, caption=limit_msg, parse_mode='Markdown')
+        except FileNotFoundError:
+            bot.reply_to(message, limit_msg, parse_mode='Markdown')
+        return
 
-    like_executor.submit(generate_and_send)
+    # Daily limit mark karo (command valid hai, ab process hoga)
+    set_daily_like_used(user_id)
+
+    # ==========================================
+    # 🔗 SHORTLINK ON/OFF SWITCH
+    # ==========================================
+    if SHORTLINK_ENABLED:
+        # ----- SHORTLINK MODE (jab SHORTLINK_ENABLED = True) -----
+        # Turant user ko processing message dikhao taaki wo wait kare
+        status_msg = bot.reply_to(message, "⚡ *Shortening your secure link... Please hold on!* 🔗", parse_mode='Markdown')
+
+        def generate_and_send():
+            token = "VPL_" + ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            
+            pending_likes[token] = {
+                "user_id": user_id,
+                "server_name": server_name,
+                "uid": uid,
+                "timestamp": time.time() 
+            }
+
+            bot_info = bot.get_me() 
+            dest_url = f"https://t.me/{bot_info.username}?start={token}" 
+            
+            bot.edit_message_text("🔐 *Encrypting & generating VIP link... Almost done!* ✨", chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
+            
+            short_url = get_shortlink(dest_url) 
+            
+            verify_msg = (
+                "⚠️ *VERIFICATION REQUIRED!* ⚠️\n"
+                "━━━━━━━━━━━━━━━━━━\n"
+                f"👤 **Target UID:** `{uid}`\n\n"
+                "👉 *Likes bhejne ke liye is link ko verify karo:*\n"
+                f"🔗 **Link:** {short_url}\n\n"
+                "*(Link open karo, ad skip karo, aur wapas aakar 'Start' dabao tabhi like jayega!)*"
+            )
+            
+            markup = InlineKeyboardMarkup()
+            markup.row(InlineKeyboardButton("🔗 OPEN LINK & VERIFY", url=short_url))
+            markup.row(InlineKeyboardButton("📹 How to Verify? Watch Here", url="https://www.youtube.com/watch?v=jSDNzzqFkYw"))
+            
+            bot.edit_message_text(verify_msg, chat_id=message.chat.id, message_id=status_msg.message_id, reply_markup=markup, parse_mode='Markdown', disable_web_page_preview=True)
+
+        like_executor.submit(generate_and_send)
+
+    else:
+        # ----- DIRECT MODE (jab SHORTLINK_ENABLED = False) -----
+        # Seedha like process karo, koi shortlink nahi
+        process_actual_like(message, server_name, uid)
 
 # ==========================================
 # 🚀 ACTUAL LIKE INJECTION (VERIFY HONE KE BAAD)
@@ -636,7 +718,8 @@ hacker_look_banner = """
 \033[1;36m[+] ROLEX VIP SYSTEM INITIALIZED\033[0m
 \033[1;36m[+] SERVER: ONLINE\033[0m
 \033[1;36m[+] MULTI-FORCE JOIN: ACTIVE\033[0m
-\033[1;36m[+] VPLINK SHORTENER: ACTIVE\033[0m
+\033[1;33m[+] VPLINK SHORTENER: DISABLED (Set SHORTLINK_ENABLED=True to re-enable)\033[0m
+\033[1;36m[+] DAILY LIMIT SYSTEM: ACTIVE (Resets at 4 AM IST)\033[0m
 \033[1;36m[+] ANTI-BYPASS SHIELD: ON (2 MIN TIMER)\033[0m
 \033[1;36m[+] CONCURRENT USERS: 10 (THREAD POOL ACTIVE)\033[0m
 """
