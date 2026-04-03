@@ -16,7 +16,7 @@ from keep_alive import keep_alive
 # ==========================================
 # ⚙️ CONFIGURATION & TOKENS
 # ==========================================
-TOKEN = '8706453784:AAEbIVcFv15JKjqzogg2sk7xHGzG2UAl5M8'
+TOKEN = '8706453784:'
 bot = telebot.TeleBot(TOKEN)
 
 # Dono APIs alag alag set kar di hain
