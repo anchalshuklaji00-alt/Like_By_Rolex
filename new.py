@@ -11,8 +11,6 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 
 # 👇 NAYA FIX: Render deployment ke liye Dummy Server
-from keep_alive import keep_alive 
-
 # ==========================================
 # ⚙️ CONFIGURATION & TOKENS
 # ==========================================
@@ -20,7 +18,7 @@ TOKEN = '8706453784:AAEbIVcFv15JKjqzogg2sk7xHGzG2UAl5M8'
 bot = telebot.TeleBot(TOKEN)
 
 # Dono APIs alag alag set kar di hain
-LIKE_API_URL = "https://like-api-mu-vert.vercel.app/"
+LIKE_API_URL = "https://like-api-mu-vert.vercel.app/like"
 INFO_API_URL = "https://info-43yp.vercel.app/player-info"
 
 # 👇 VPLINK SHORTENER SETUP 👇
@@ -533,11 +531,13 @@ def process_actual_like(message, server_name, uid):
                         print(f"MP4 Error: {e}") 
                         bot.edit_message_text(final_text, chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
 
-                    # Result group mein bhi bhejo (success + already liked dono cases)
-                    try:
-                        bot.send_message(GROUP_CHAT_ID, final_text, parse_mode='Markdown')
-                    except Exception as ge:
-                        print(f"Group send error: {ge}")
+                    # Result group mein sirf tab bhejo jab command DM se aayi ho
+                    # Group mein command di thi toh pehle hi wahan ja chuka hai — dobara mat bhejo
+                    if message.chat.type == 'private':
+                        try:
+                            bot.send_message(GROUP_CHAT_ID, final_text, parse_mode='Markdown')
+                        except Exception as ge:
+                            print(f"Group send error: {ge}")
 
                 else:
                     final_text = "❌ *OPERATION FAILED* ❌\n━━━━━━━━━━━━━━━━━━\n⚠️ *API Error:* Token Expired or Invalid\n━━━━━━━━━━━━━━━━━━\n📩 *Owner:* @RolexBoss62"
@@ -726,7 +726,8 @@ hacker_look_banner = """
 print(hacker_look_banner)
 
 # 👇 NAYA FIX: Render Dummy Server Start 👇
-keep_alive()
+
+
 
 bot.infinity_polling(allowed_updates=telebot.util.update_types)
 
