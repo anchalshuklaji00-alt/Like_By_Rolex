@@ -5,6 +5,8 @@ import json
 import os
 import time
 from datetime import datetime, timezone, timedelta
+from flask import Flask
+from threading import Thread
 import threading
 import string
 import random
@@ -728,6 +730,26 @@ print(hacker_look_banner)
 # 👇 NAYA FIX: Render Dummy Server Start 👇
 
 
+# ==========================================
+# 🌐 FAKE WEB SERVER FOR RENDER
+# ==========================================
+app = Flask(__name__)
 
-bot.infinity_polling(allowed_updates=telebot.util.update_types)
+@app.route('/')
+def home():
+    return "ROLEX VIP Bot is running successfully on Render!"
 
+def run_server():
+    # Render khud ek port dega jo hum yahan fetch kar rahe hain
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host="0.0.0.0", port=port)
+
+if __name__ == "__main__":
+    print("🔥 ROLEX VIP Superfast Bot is starting on Render...")
+    
+    # Server ko background me start karna
+    server_thread = Thread(target=run_server)
+    server_thread.start()
+    
+    # Apna main bot start karna
+    bot.infinity_polling(allowed_updates=telebot.util.update_types)
