@@ -5,12 +5,13 @@ import json
 import os
 import time
 from datetime import datetime, timezone, timedelta
-from flask import Flask
-from threading import Thread
 import threading
 import string
 import random
 from concurrent.futures import ThreadPoolExecutor
+from flask import Flask
+from threading import Thread
+
 
 # 👇 NAYA FIX: Render deployment ke liye Dummy Server
 # ==========================================
@@ -38,7 +39,8 @@ SHORTLINK_ENABLED = False
 # ⚙️ DAILY LIMIT SYSTEM (RESETS AT 4 AM IST)
 # ==========================================
 IST = timezone(timedelta(hours=5, minutes=30))
-daily_like_usage = {}  # {user_id: datetime (IST)}
+# KEY='user_id:uid' — har UID ke liye alag limit
+daily_like_usage = {}  # {'user_id:uid': datetime (IST)}
 
 def get_ff_day_start():
     """Current Free Fire day start kab hua (4 AM IST)"""
@@ -49,17 +51,16 @@ def get_ff_day_start():
     else:
         return today_4am - timedelta(days=1)
 
-def has_used_daily_like(user_id):
-    """Check karo ki user ne aaj (4AM ke baad) like use kiya hai ya nahi"""
-    if user_id not in daily_like_usage:
+def has_used_daily_like(user_id, uid):
+    """Check: is user ne aaj is UID pe like bheja hai?"""
+    key = f"{user_id}:{uid}"
+    if key not in daily_like_usage:
         return False
-    last_use = daily_like_usage[user_id]
-    ff_day_start = get_ff_day_start()
-    return last_use >= ff_day_start
+    return daily_like_usage[key] >= get_ff_day_start()
 
-def set_daily_like_used(user_id):
-    """User ka daily like mark karo as used"""
-    daily_like_usage[user_id] = datetime.now(IST)
+def set_daily_like_used(user_id, uid):
+    """Is user+uid ke liye aaj ka like mark karo"""
+    daily_like_usage[f"{user_id}:{uid}"] = datetime.now(IST)
 
 def get_next_reset_time():
     """Next 4 AM IST kitne baje hoga (text format mein)"""
@@ -225,15 +226,20 @@ def send_force_join_msg(message):
     markup.row(InlineKeyboardButton("🔄 REFRESH / VERIFY 🔄", callback_data=f"verify_{user_id}"))
 
     hacker_look_warning = (
-        f"🚫 **ACCESS DENIED** 🚫\n"
+        f"╔══════════════════════╗\n"
+        f"  🚫  *ACCESS DENIED*  🚫\n"
+        f"╚══════════════════════╝\n"
+        f"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"👤 *User :* {first_name}\n"
         f"━━━━━━━━━━━━━━━━━━\n"
-        f"👤 **User:** {first_name}\n\n"
-        f"⚠️ **PLEASE JOIN ALL CHANNELS/GROUPS TO USE THIS BOT!** ✨\n\n"
-        f"DUE TO HEAVY OVERLOAD, ONLY SUBSCRIBERS CAN USE THIS PRIVATE VIP BOT! 😁\n\n"
-        f"👇 **HOW TO UNLOCK:**\n"
-        f"1️⃣ Join the VIP Group and *both* Channels above.\n"
-        f"2️⃣ Start/Check the other bots.\n"
-        f"3️⃣ Wapas aakar **'REFRESH / VERIFY'** dabao."
+        f"⚠️ *Bot use karne ke liye sab join karo!*\n\n"
+        f"📋 *Steps to Unlock:*\n"
+        f"  1️⃣ VIP Group join karo\n"
+        f"  2️⃣ Dono Channels join karo\n"
+        f"  3️⃣ Dono Bots start karo\n"
+        f"  4️⃣ ✅ *VERIFY* button dabao\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"🚀 *Powered by VIP Rolex Engine*"
     )
     
     try:
@@ -353,41 +359,41 @@ def send_welcome(message):
             bot.reply_to(message, "❌ Link Expire ho gaya hai ya invalid hai! Dobara `/like` command lagao.")
             return
 
-    # Normal /start — Premium Welcome Screen
+    # Premium /start welcome
     first_name = message.from_user.first_name
     example_text = (
-        f"🏆 *WELCOME TO ROLEX VIP SYSTEM* 🏆\n"
+        f"👑 *WELCOME, {first_name}!* 👑\n"
         "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
-        f"👋 *Hey {first_name}, Tum Verified Ho!* ✅\n\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "⚡ *AVAILABLE COMMANDS:*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🔍 *Player Info Scan*\n"
-        "  └ `/info IND 123456789`\n\n"
-        "❤️ *Free Like Inject*\n"
+        "🔥 *ROLEX VIP LIKE SYSTEM*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "✅ *Tum verified ho — bot ready hai!*\n\n"
+        "📋 *Available Commands:*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "❤️ *Like Bhejo:*\n"
         "  └ `/like IND 123456789`\n\n"
-        "📊 *System Status*\n"
+        "🔍 *Player Info (DM only):*\n"
+        "  └ `/info IND 123456789`\n\n"
+        "📊 *System Status:*\n"
         "  └ `/status`\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "💎 *Rolex VIP — Always Free, Always Fast!*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "⚡ *System Online — 24/7 Active!*\n"
         "🚀 *Powered by VIP Rolex Engine*"
     )
-    markup = InlineKeyboardMarkup()
-    markup.row(
-        InlineKeyboardButton("❤️ Send Likes", url=f"https://t.me/{bot.get_me().username}?start=like"),
-        InlineKeyboardButton("🔍 Player Info", url=f"https://t.me/{bot.get_me().username}?start=info")
+    markup_start = InlineKeyboardMarkup()
+    markup_start.row(
+        InlineKeyboardButton("👑 VIP Group", url=f"https://t.me/{GROUP_USERNAME.replace('@','')}"),
+        InlineKeyboardButton("📢 Channel 1", url=f"https://t.me/{CHANNEL_1.replace('@','')}"),
+        InlineKeyboardButton("📢 Channel 2", url=f"https://t.me/{CHANNEL_2.replace('@','')}")
     )
-    markup.row(
-        InlineKeyboardButton("📢 Channel (@ROLEX857J)", url="https://t.me/ROLEX857J"),
-        InlineKeyboardButton("📢 Channel (@rolexlike)", url="https://t.me/rolexlike")
+    markup_start.row(
+        InlineKeyboardButton("🤖 Info Bot", url=BOT_1_LINK),
+        InlineKeyboardButton("❤️ Like Bot", url=BOT_2_LINK)
     )
-    markup.row(InlineKeyboardButton("👑 VIP Group", url="https://t.me/LikeBotFreeFireMax"))
     try:
         with open('2.png', 'rb') as photo:
-            bot.send_photo(message.chat.id, photo, caption=example_text, reply_markup=markup, parse_mode="Markdown")
+            bot.send_photo(message.chat.id, photo, caption=example_text, reply_markup=markup_start, parse_mode="Markdown")
     except FileNotFoundError:
-        bot.reply_to(message, example_text, reply_markup=markup, parse_mode='Markdown')
-
+        bot.reply_to(message, example_text, reply_markup=markup_start, parse_mode='Markdown')
 
 
 # ==========================================
@@ -424,19 +430,23 @@ def handle_like(message):
     # ==========================================
     # 🚫 DAILY LIMIT CHECK
     # ==========================================
-    if has_used_daily_like(user_id):
+    if has_used_daily_like(user_id, uid):
         next_reset = get_next_reset_time()
         limit_msg = (
-            "🚫 *DAILY LIMIT REACHED!* 🚫\n"
-            "━━━━━━━━━━━━━━━━━━\n"
+            "╔══════════════════════╗\n"
+            "  🚫  *UID LIMIT REACHED*  🚫\n"
+            "╚══════════════════════╝\n"
+            "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
             f"👤 *Hey {message.from_user.first_name},*\n\n"
-            "Aapka aaj ka Free Like quota already use ho chuka hai! 💔\n\n"
-            "🎮 *Free Fire ki tarah, har cheez ka ek limit hota hai.*\n"
-            "Yeh bot bhi daily ek hi baar like bhejne ki permission deta hai.\n\n"
-            "⏰ *Aapka limit reset hoga:*\n"
-            f"📅 `{next_reset}`\n\n"
+            f"🆔 UID `{uid}` pe aaj ka like\n"
+            "   *already bhej diya gaya hai!* 💔\n\n"
             "━━━━━━━━━━━━━━━━━━\n"
-            "🔁 Kal subah *4:00 AM IST* ke baad wapas aana!\n"
+            f"⏰ *Reset hoga:* `{next_reset}`\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "💡 *Kya karo?*\n"
+            "  ┌ ✅ Kisi *aur UID* pe like bhejo\n"
+            f"  └ 🕐 Ya kal 4 AM ke baad is UID pe aana\n"
+            "━━━━━━━━━━━━━━━━━━\n"
             "🚀 *Powered by VIP Rolex Engine*"
         )
         try:
@@ -446,8 +456,7 @@ def handle_like(message):
             bot.reply_to(message, limit_msg, parse_mode='Markdown')
         return
 
-    # Daily limit mark karo (command valid hai, ab process hoga)
-    set_daily_like_used(user_id)
+    # Limit API success ke baad lagegi — neeche process_actual_like mein
 
     # ==========================================
     # 🔗 SHORTLINK ON/OFF SWITCH
@@ -519,25 +528,35 @@ def process_actual_like(message, server_name, uid):
                     likes_before = likes_after - likes_given
                     
                     if likes_given == 0:
+                        # Like nahi gaya — limit mat lagao, user dusri UID try kar sakta hai
+                        next_reset = get_next_reset_time()
                         final_text = (
-                            "⚠️ *LIKE PEHLE SE DE DIYA GAYA HAI!* ⚠️\n"
+                            "🔴 *LIKE PEHLE HI DE DIYA GAYA HAI!* 🔴\n"
+                            "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+                            f"👤 *Player :* `{data.get('PlayerNickname', 'Unknown')}`\n"
+                            f"🆔 *UID     :* `{data.get('UID', uid)}`\n"
+                            f"🌍 *Region  :* `{data.get('Region', server_name)}`\n"
                             "━━━━━━━━━━━━━━━━━━\n"
-                            f"👤 *Player Name:* `{data.get('PlayerNickname', 'Unknown')}`\n"
-                            f"🆔 *Player UID:* `{data.get('UID', uid)}`\n"
-                            f"🌍 *Region:* `{data.get('Region', server_name)}`\n"
+                            "📊 *Like Status:*\n"
+                            f"  ├ Pehle Se Tha  : `{likes_before:,}`\n"
+                            f"  ├ Injected      : `+0` _(Limit)_\n"
+                            f"  └ Ab Bhi Total  : `{likes_after:,}`\n"
                             "━━━━━━━━━━━━━━━━━━\n"
-                            f"📉 *Before Likes:* `{likes_before}`\n"
-                            f"📈 *Likes Injected:* `+0` (Daily Limit)\n"
-                            f"📊 *Total Likes Now:* `{likes_after}`\n"
+                            "⚠️ *Is UID pe like pehle hi de diya gaya hai!*\n\n"
+                            "💡 *Kya karo?*\n"
+                            "  ┌ ✅ Kisi aur UID pe try karo\n"
+                            f"  └ 🕐 Ya kal `{next_reset}` ke baad aana\n"
                             "━━━━━━━━━━━━━━━━━━\n"
                             "🚀 *Powered by VIP Rolex Engine*"
                         )
                     else:
+                        # ✅ Like gaya — ABHI sirf is user+uid ke liye limit lagao
+                        set_daily_like_used(user_id, uid)
                         final_text = (
                             "╔══════════════════════╗\n"
                             "  ✅  *LIKES INJECTED!*  ✅\n"
                             "╚══════════════════════╝\n"
-                            "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+                            "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
                             f"👤 *Player :* `{data.get('PlayerNickname', 'Unknown')}`\n"
                             f"🆔 *UID     :* `{data.get('UID', uid)}`\n"
                             f"🌍 *Region  :* `{data.get('Region', server_name)}`\n"
@@ -560,13 +579,12 @@ def process_actual_like(message, server_name, uid):
                         print(f"MP4 Error: {e}") 
                         bot.edit_message_text(final_text, chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
 
-                    # DM se aayi command tabhi group mein result bhejo
+                    # Sirf DM se aayi command pe group mein bhejo
                     if message.chat.type == 'private':
                         try:
                             bot.send_message(GROUP_CHAT_ID, final_text, parse_mode='Markdown')
                         except Exception as ge:
                             print(f"Group send error: {ge}")
-                        print(f"Group send error: {ge}")
 
                 else:
                     final_text = "❌ *OPERATION FAILED* ❌\n━━━━━━━━━━━━━━━━━━\n⚠️ *API Error:* Token Expired or Invalid\n━━━━━━━━━━━━━━━━━━\n📩 *Owner:* @RolexBoss62"
@@ -583,10 +601,9 @@ def process_actual_like(message, server_name, uid):
 # ==========================================
 @bot.message_handler(commands=['info'])
 def get_player_info(message):
-    # Group mein /info silently ignore — koi message nahi
+    # Group mein /info silently ignore
     if message.chat.type in ['group', 'supergroup'] or message.chat.id < 0:
         return
-
 
     user_id = message.from_user.id
     log_active_user(user_id)
@@ -645,38 +662,34 @@ def get_player_info(message):
             leader_br_str = f"{get_br_rank(captain.get('rank', 0), captain.get('rankingPoints', 0))} ({captain.get('rankingPoints', 0)})"
             leader_cs_str = f"{get_cs_rank(captain.get('csRank', 0))} ({cs_stars_leader} Star)"
 
-            reply = (
-                f"🔍 *ROLEX VIP — PLAYER INTEL* 🔍\n"
-                "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
-                "👤 *BASIC INFO*\n"
-                "━━━━━━━━━━━━━━━━━━\n"
-                f"  ├ 🏷️ Name       : `{basic.get('nickname', 'Unknown')}`\n"
-                f"  ├ 🆔 UID        : `{uid}`\n"
-                f"  ├ 🎮 Level      : `{basic.get('level', 0)}`\n"
-                f"  ├ 🌍 Region     : `{region}`\n"
-                f"  ├ ❤️ Likes      : `{basic.get('liked', 0):,}`\n"
-                f"  ├ 🏅 Honor      : `{credit.get('creditScore', 'N/A')}`\n"
-                f"  └ ✍️ Bio        : `{social.get('signature', 'No Bio')}`\n"
-                "━━━━━━━━━━━━━━━━━━\n"
-                "⚔️ *BATTLE STATS*\n"
-                "━━━━━━━━━━━━━━━━━━\n"
-                f"  ├ 🔥 Fire Pass  : `{bp_pass}`\n"
-                f"  ├ 🏆 BR Rank    : `{br_rank_str}`\n"
-                f"  ├ 🎯 CS Rank    : `{cs_rank_str}`\n"
-                f"  ├ 🚻 Gender     : `{gender}`\n"
-                f"  ├ 📅 Created    : `{fmt_t(basic.get('createAt'))}`\n"
-                f"  └ 🕐 Last Seen  : `{fmt_t(basic.get('lastLoginAt'))}`\n"
-                "━━━━━━━━━━━━━━━━━━\n"
-                "🏰 *GUILD INFO*\n"
-                "━━━━━━━━━━━━━━━━━━\n"
-                f"  ├ 🛡️ Guild      : `{clan.get('clanName', 'No Guild')}`\n"
-                f"  ├ 🆔 Guild ID   : `{clan.get('clanId', 'N/A')}`\n"
-                f"  ├ ⭐ Guild Lvl  : `{clan.get('clanLevel', 'N/A')}`\n"
-                f"  ├ 👥 Members    : `{clan.get('memberNum', 0)}/{clan.get('capacity', 0)}`\n"
-                f"  └ 👑 Leader     : `{captain.get('nickname', 'N/A')}`\n"
-                "━━━━━━━━━━━━━━━━━━\n"
-                "🚀 *Powered by VIP Rolex Engine*"
-            )
+            reply = f"""**ACCOUNT INFORMATION:**
+┌ ACCOUNT BASIC INFORMATION
+├─ Name: {basic.get('nickname', 'Unknown')}
+├─ UID: {uid}
+├─ Level: {basic.get('level', 0)}
+├─ Region: {region}
+├─ Likes: {basic.get('liked', 0)}
+├─ Honor Score: {credit.get('creditScore', 'N/A')}
+└─ Signature: {social.get('signature', 'No Signature')}
+
+**ACCOUNT ACTIVITY:**
+┌ ACCOUNT ACTIVITY
+├─ Fire Pass: {bp_pass}
+├─ Br Rank: {br_rank_str}
+├─ Cs Rank: {cs_rank_str}
+├─ Gender: {gender}
+├─ Created At: {fmt_t(basic.get('createAt'))}
+└─ Last Login: {fmt_t(basic.get('lastLoginAt'))}
+
+**GUILD INFORMATION:**
+┌ GUILD INFORMATION
+├─ Guild Name: {clan.get('clanName', 'No Guild')}
+├─ Guild ID: {clan.get('clanId', 'N/A')}
+├─ Guild Level: {clan.get('clanLevel', 'N/A')}
+├─ Live Members: {clan.get('memberNum', 0)}/{clan.get('capacity', 0)}
+└─ Leader Name: {captain.get('nickname', 'N/A')}
+
+✨ *Bot By ROLEX*"""
 
             bot.delete_message(chat_id=message.chat.id, message_id=status_msg.message_id)
             
@@ -778,6 +791,7 @@ print("[+] ROLEX LIKE BOT v2 INITIALIZED — ALL SYSTEMS GO!")
 keep_alive() # Dummy server start kiya
 bot.remove_webhook()
 bot.infinity_polling(allowed_updates=telebot.util.update_types)
+
 
 
 
