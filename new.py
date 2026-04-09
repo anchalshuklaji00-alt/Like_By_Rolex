@@ -413,8 +413,7 @@ def handle_like(message):
             "━━━━━━━━━━━━━━━━━━\n"
             f"👤 *Hey {message.from_user.first_name},*\n\n"
             "Aapka aaj ka Free Like quota already use ho chuka hai! 💔\n\n"
-            "🎮 *Free Fire ki tarah, har cheez ka ek limit hota hai.*\n"
-            "Yeh bot bhi daily ek hi baar like bhejne ki permission deta hai.\n\n"
+            
             "⏰ *Aapka limit reset hoga:*\n"
             f"📅 `{next_reset}`\n\n"
             "━━━━━━━━━━━━━━━━━━\n"
@@ -501,7 +500,7 @@ def process_actual_like(message, server_name, uid):
                     
                     if likes_given == 0:
                         final_text = (
-                            "⚠️ *LIKE PEHLE SE DE DIYA GAYA HAI!* ⚠️\n"
+                            "⚠️ *LIKE PHLE DE DIYA HAI YA UID PE DAILY LIKE LIMIT REACHED HAI !* ⚠️\n"
                             "━━━━━━━━━━━━━━━━━━\n"
                             f"👤 *Player Name:* `{data.get('PlayerNickname', 'Unknown')}`\n"
                             f"🆔 *Player UID:* `{data.get('UID', uid)}`\n"
@@ -511,7 +510,8 @@ def process_actual_like(message, server_name, uid):
                             f"📈 *Likes Injected:* `+0` (Daily Limit)\n"
                             f"📊 *Total Likes Now:* `{likes_after}`\n"
                             "━━━━━━━━━━━━━━━━━━\n"
-                            "🚀 *Powered by VIP Rolex Engine*"
+                            "📢 NOTE - TRY KARO DUSRI UID PE ES PE LIMIT HAI !"
+                             "🚀 *Powered by VIP Rolex Engine*"
                         )
                     else:
                         final_text = (
