@@ -38,7 +38,8 @@ SHORTLINK_ENABLED = False
 # ⚙️ DAILY LIMIT SYSTEM (RESETS AT 4 AM IST)
 # ==========================================
 IST = timezone(timedelta(hours=5, minutes=30))
-daily_like_usage = {}  # {user_id: datetime (IST)}
+# KEY = 'user_id:uid' — har user ke liye har UID pe alag limit
+daily_like_usage = {}  # {'user_id:uid': datetime (IST)}
 
 def get_ff_day_start():
     """Current Free Fire day start kab hua (4 AM IST)"""
@@ -49,17 +50,19 @@ def get_ff_day_start():
     else:
         return today_4am - timedelta(days=1)
 
-def has_used_daily_like(user_id):
-    """Check karo ki user ne aaj (4AM ke baad) like use kiya hai ya nahi"""
-    if user_id not in daily_like_usage:
+def has_used_daily_like(user_id, uid):
+    """Check karo ki user ne aaj is UID pe like bheja hai ya nahi"""
+    key = f"{user_id}:{uid}"
+    if key not in daily_like_usage:
         return False
-    last_use = daily_like_usage[user_id]
+    last_use = daily_like_usage[key]
     ff_day_start = get_ff_day_start()
     return last_use >= ff_day_start
 
-def set_daily_like_used(user_id):
-    """User ka daily like mark karo as used"""
-    daily_like_usage[user_id] = datetime.now(IST)
+def set_daily_like_used(user_id, uid):
+    """User ka daily like us specific UID ke liye mark karo"""
+    key = f"{user_id}:{uid}"
+    daily_like_usage[key] = datetime.now(IST)
 
 def get_next_reset_time():
     """Next 4 AM IST kitne baje hoga (text format mein)"""
@@ -403,7 +406,7 @@ def handle_like(message):
     # ==========================================
     # 🚫 DAILY LIMIT CHECK
     # ==========================================
-    if has_used_daily_like(user_id):
+    if has_used_daily_like(user_id, uid):
         next_reset = get_next_reset_time()
         limit_msg = (
             "🚫 *DAILY LIMIT REACHED!* 🚫\n"
@@ -425,8 +428,7 @@ def handle_like(message):
             bot.reply_to(message, limit_msg, parse_mode='Markdown')
         return
 
-    # Daily limit mark karo (command valid hai, ab process hoga)
-    set_daily_like_used(user_id)
+    # Limit tab lagegi jab like success ho — neeche API response mein
 
     # ==========================================
     # 🔗 SHORTLINK ON/OFF SWITCH
@@ -533,13 +535,11 @@ def process_actual_like(message, server_name, uid):
                         print(f"MP4 Error: {e}") 
                         bot.edit_message_text(final_text, chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
 
-                    # Result group mein sirf tab bhejo jab command DM se aayi ho
-                    # Group mein command di thi toh pehle hi wahan ja chuka hai — dobara mat bhejo
-                    if message.chat.type == 'private':
-                        try:
-                            bot.send_message(GROUP_CHAT_ID, final_text, parse_mode='Markdown')
-                        except Exception as ge:
-                            print(f"Group send error: {ge}")
+                    # Result group mein bhi bhejo (success + already liked dono cases)
+                    try:
+                        bot.send_message(GROUP_CHAT_ID, final_text, parse_mode='Markdown')
+                    except Exception as ge:
+                        print(f"Group send error: {ge}")
 
                 else:
                     final_text = "❌ *OPERATION FAILED* ❌\n━━━━━━━━━━━━━━━━━━\n⚠️ *API Error:* Token Expired or Invalid\n━━━━━━━━━━━━━━━━━━\n📩 *Owner:* @RolexBoss62"
@@ -728,28 +728,32 @@ hacker_look_banner = """
 print(hacker_look_banner)
 
 # 👇 NAYA FIX: Render Dummy Server Start 👇
-
-
 # ==========================================
-# 🌐 FAKE WEB SERVER FOR RENDER
+# 🌐 RENDER DUMMY WEB SERVER
 # ==========================================
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "ROLEX VIP Bot is running successfully on Render!"
+    return "Rolex Bot is Alive and Running!"
 
-def run_server():
-    # Render khud ek port dega jo hum yahan fetch kar rahe hain
+def run():
+    # Render khud ek PORT deta hai, warna 8080 use hoga
     port = int(os.environ.get('PORT', 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host='0.0.0.0', port=port)
 
-if __name__ == "__main__":
-    print("🔥 ROLEX VIP Superfast Bot is starting on Render...")
-    
-    # Server ko background me start karna
-    server_thread = Thread(target=run_server)
-    server_thread.start()
-    
-    # Apna main bot start karna
-    bot.infinity_polling(allowed_updates=telebot.util.update_types)
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+print("[+] ROLEX LIKE BOT v2 INITIALIZED — ALL SYSTEMS GO!")
+keep_alive() # Dummy server start kiya
+bot.remove_webhook()
+bot.infinity_polling(allowed_updates=telebot.util.update_types)
+
+
+
+
+bot.infinity_polling(allowed_updates=telebot.util.update_types)
+
+
