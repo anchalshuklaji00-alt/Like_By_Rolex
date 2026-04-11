@@ -23,6 +23,12 @@ bot = telebot.TeleBot(TOKEN)
 # Dono APIs alag alag set kar di hain
 LIKE_API_URL = "https://like-api-mu-vert.vercel.app/like"
 INFO_API_URL = "https://info-43yp.vercel.app/player-info"
+CRON_URL = "https://like-api-mu-vert.vercel.app/cron"  # Token refresh endpoint
+
+# ==========================================
+# 👑 OWNER CONFIG (Only ye /refresh use kar sakta hai)
+# ==========================================
+OWNER_USERNAME = "RolexBoss62"
 
 # 👇 VPLINK SHORTENER SETUP 👇
 VPLINK_API_KEY = "c98c6414ee95c040c319b79703888333fcf89435"
@@ -706,6 +712,44 @@ def get_player_info(message):
         bot.edit_message_text("❌ **API Error:** Server abhi slow hai. Kripya thodi der baad try karein!", chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
     except Exception:
         bot.edit_message_text("❌ OPERATION FAILED ❌\n⚠️ API Error: Owner ko message karo @RolexBoss62", chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
+
+# ==========================================
+# 🔄 COMMAND: /refresh (ONLY OWNER)
+# ==========================================
+@bot.message_handler(commands=['refresh'])
+def refresh_tokens_cmd(message):
+    user = message.from_user
+    # Sirf owner use kar sakta hai
+    if not user.username or user.username.lower() != OWNER_USERNAME.lower():
+        bot.reply_to(message, "⛔ *Access Denied!*\nYe command sirf owner ke liye hai.", parse_mode='Markdown')
+        return
+
+    status_msg = bot.reply_to(message, "🔄 *Token refresh ho raha hai... thoda wait karo* ⏳", parse_mode='Markdown')
+
+    try:
+        resp = requests.get(CRON_URL, timeout=120)
+        data = resp.json()
+        generated = data.get("message", "")
+        version = data.get("version", "N/A")
+        ok = data.get("status", 500) == 200
+
+        result_text = (
+            f"{'✅' if ok else '❌'} *TOKEN REFRESH {'DONE' if ok else 'FAILED'}*\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            f"📦 *Result:* `{generated}`\n"
+            f"🔖 *Version:* `{version}`\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🚀 *Powered by VIP Rolex Engine*"
+        )
+        bot.edit_message_text(result_text, chat_id=message.chat.id, message_id=status_msg.message_id, parse_mode='Markdown')
+
+    except Exception as e:
+        bot.edit_message_text(
+            f"❌ *Refresh Failed!*\n`{e}`",
+            chat_id=message.chat.id,
+            message_id=status_msg.message_id,
+            parse_mode='Markdown'
+        )
 
 # ==========================================
 # 🎮 COMMAND: /status
