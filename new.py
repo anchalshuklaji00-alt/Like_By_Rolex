@@ -39,7 +39,7 @@ pending_likes = {} # Memory for tokens
 # ==========================================
 # 🔴 Shortlink band karne ke liye: SHORTLINK_ENABLED = False
 # 🟢 Shortlink wapas chalu karne ke liye: SHORTLINK_ENABLED = True  ← BAS YE EK LINE BADLO
-SHORTLINK_ENABLED = False
+SHORTLINK_ENABLED = True
 
 # ==========================================
 # ⚙️ DAILY LIMIT SYSTEM (RESETS AT 4 AM IST)
@@ -232,9 +232,9 @@ def send_force_join_msg(message):
     markup.row(InlineKeyboardButton("🔄 REFRESH / VERIFY 🔄", callback_data=f"verify_{user_id}"))
 
     hacker_look_warning = (
-        f"╔══════════════════════╗\n"
+        f"╔════════════════════╗\n"
         f"  🚫  *ACCESS DENIED*  🚫\n"
-        f"╚══════════════════════╝\n"
+        f"╚════════════════════╝\n"
         f"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
         f"👤 *User :* {first_name}\n"
         f"━━━━━━━━━━━━━━━━━━\n"
@@ -439,9 +439,9 @@ def handle_like(message):
     if has_used_daily_like(user_id, uid):
         next_reset = get_next_reset_time()
         limit_msg = (
-            "╔══════════════════════╗\n"
+            "╔═══════════════════╗\n"
             "  🚫  *UID LIMIT REACHED*  🚫\n"
-            "╚══════════════════════╝\n"
+            "╚═══════════════════╝\n"
             "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
             f"👤 *Hey {message.from_user.first_name},*\n\n"
             f"🆔 UID `{uid}` pe aaj ka like\n"
@@ -548,7 +548,7 @@ def process_actual_like(message, server_name, uid):
                             f"  ├ Injected      : `+0` _(Limit)_\n"
                             f"  └ Ab Bhi Total  : `{likes_after:,}`\n"
                             "━━━━━━━━━━━━━━━━━━\n"
-                            "⚠️ *Is UID pe like pehle hi de diya gaya hai!*\n\n"
+                            "⚠️ *Is UID pe like Limit Reached ho gaya hai Free Fire me Daily 200 Like jata hai ek Uid Pe !*\n\n"
                             "💡 *Kya karo?*\n"
                             "  ┌ ✅ Kisi aur UID pe try karo\n"
                             f"  └ 🕐 Ya kal `{next_reset}` ke baad aana\n"
@@ -559,9 +559,9 @@ def process_actual_like(message, server_name, uid):
                         # ✅ Like gaya — ABHI sirf is user+uid ke liye limit lagao
                         set_daily_like_used(user_id, uid)
                         final_text = (
-                            "╔══════════════════════╗\n"
+                            "╔══════════════════╗\n"
                             "  ✅  *LIKES INJECTED!*  ✅\n"
-                            "╚══════════════════════╝\n"
+                            "╚══════════════════╝\n"
                             "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
                             f"👤 *Player :* `{data.get('PlayerNickname', 'Unknown')}`\n"
                             f"🆔 *UID     :* `{data.get('UID', uid)}`\n"
