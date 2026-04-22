@@ -39,7 +39,7 @@ pending_likes = {} # Memory for tokens
 # ==========================================
 # 🔴 Shortlink band karne ke liye: SHORTLINK_ENABLED = False
 # 🟢 Shortlink wapas chalu karne ke liye: SHORTLINK_ENABLED = True  ← BAS YE EK LINE BADLO
-SHORTLINK_ENABLED = True
+SHORTLINK_ENABLED = False 
 
 # ==========================================
 # ⚙️ DAILY LIMIT SYSTEM (RESETS AT 4 AM IST)
